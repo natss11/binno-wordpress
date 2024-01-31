@@ -2,6 +2,7 @@
 
 get_header();
 
+
 /*
 Template Name: Discover
 */
@@ -11,7 +12,6 @@ function fetch_api_data($api_url)
 
     // Make the request
     $response = wp_remote_get($api_url, array('sslverify'   => false, 'sslversion' => CURL_SSLVERSION_TLSv1_2));
-
 
     // Check for errors
     if (is_wp_error($response)) {
@@ -33,9 +33,9 @@ function fetch_api_data($api_url)
     return $data;
 }
 
-$posts = fetch_api_data("https://217.196.51.115/m/api/posts/");
-$events = fetch_api_data("https://217.196.51.115/m/api/events/");
-$blogs = fetch_api_data("https://217.196.51.115/m/api/blogs/");
+$posts = fetch_api_data("http://217.196.51.115/m/api/posts/");
+$events = fetch_api_data("http://217.196.51.115/m/api/events/");
+$blogs = fetch_api_data("http://217.196.51.115/m/api/blogs/");
 
 
 if (!$posts || !$events || !$blogs) {
@@ -58,12 +58,12 @@ if (!$posts || !$events || !$blogs) {
     </head>
 
     <body>
-        <main class="container mx-16 flex justify-center items-center">
+        <main class="container flex justify-center items-center">
             <div class="container mx-16">
 
                 <!-- Display Startup Posts -->
                 <h3 class="font-semibold text-3xl md:text-5xl">Startup Posts</h3>
-                <div class="container mx-auto p-8 px-16 flex flex-col md:flex-column">
+                <div class="container p-8 px-16 flex flex-col md:flex-column">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="cardContainer">
 
                         <?php
@@ -72,10 +72,13 @@ if (!$posts || !$events || !$blogs) {
                             return strtotime($b['post_dateadded']) - strtotime($a['post_dateadded']);
                         });
 
+                        $i = 0;
                         foreach ($posts as $post) :
+                            $i++;
+                            $shortened_heading = substr($post['post_heading'], 0, 15);
                         ?>
                             <div class="card-container bg-white rounded-lg overflow-hidden shadow-lg h-full">
-                                <img src="<?php echo esc_url($post['post_img']); ?>" alt="<?php echo esc_html($post['post_img']); ?>" class="w-full h-40 object-cover" style="background-color: #888888;">
+                                <img src=<?php echo esc_html(($post['post_img'])); ?> alt=<?php echo esc_html(($post['post_img'])); ?> id="dynamicImg-<?php echo $i ?>" class="w-full h-40 object-cover" style="background-color: #888888;">
                                 <div class="p-4">
                                     <div class="flex items-center mb-2">
                                         <div>
@@ -86,6 +89,7 @@ if (!$posts || !$events || !$blogs) {
                                 </div>
                             </div>
                         <?php endforeach; ?>
+
                     </div>
 
                     <div class="mt-4 flex justify-end">
@@ -108,6 +112,7 @@ if (!$posts || !$events || !$blogs) {
                             const prevButton = document.querySelector('.prev-button');
                             const nextButton = document.querySelector('.next-button');
 
+
                             // Clear card container
                             cardContainer.innerHTML = '';
 
@@ -117,18 +122,26 @@ if (!$posts || !$events || !$blogs) {
                             for (let i = startIndex; i < endIndex && i < cards.length; i++) {
                                 const card = document.createElement('div');
                                 card.className = 'card-container bg-white rounded-lg overflow-hidden shadow-lg h-full';
+
+                                // Limit the post_heading to 15 characters and append '...'
+                                // const truncatedHeading = cards[i].post_heading.length > 15 ?
+                                //     cards[i].post_heading.slice(0, 15) + '...' :
+                                //     cards[i].post_heading;
+
                                 card.innerHTML = `
-                    <img src="${cards[i].post_img}" alt="${cards[i].post_img}" class="w-full h-40 object-cover" style="background-color: #888888;">
-                    <div class="p-4">
-                        <div class="flex items-center mb-2">
-                            <div>
-                                <h2 class="text-2xl font-semibold">${cards[i].post_heading}</h2>
-                                <p class="text-gray-600 text-sm">${cards[i].post_dateadded}</p>
-                            </div>
-                        </div>
-                    </div>`;
+                                    <img src="${cards[i].post_img}" alt="${cards[i].post_img}" id="dynamicImg-${i}" class="w-full h-40 object-cover" style="background-color: #888888;">
+                                    <div class="p-4">
+                                        <div class="flex items-center mb-2">
+                                            <div>
+                                                <h2 class="text-2xl font-semibold">${cards[i].post_heading}</h2>
+                                                <p class="text-gray-600 text-sm">${cards[i].post_dateadded}</p>
+                                            </div>
+                                        </div>
+                                    </div>`;
+
                                 cardContainer.appendChild(card);
                             }
+
                             // Hide/Show buttons based on the number of posts
                             if (cards.length <= cardsPerPage) {
                                 prevButton.style.display = 'none';
@@ -142,35 +155,52 @@ if (!$posts || !$events || !$blogs) {
                         function nextPage() {
                             currentPage = Math.min(currentPage + 1, Math.ceil(cards.length / cardsPerPage) - 1);
                             displayCards();
+
+                            // Call updateImageSrc for each image after updating the current page
+                            for (var i = 1; i <= 3; i++) {
+                                var imgElement = document.getElementById("dynamicImg-" + i);
+                                if (imgElement) {
+                                    updateImageSrc(imgElement);
+                                }
+                            }
                         }
 
                         function prevPage() {
                             currentPage = Math.max(currentPage - 1, 0);
                             displayCards();
+
+                            // Call updateImageSrc for each image after updating the current page
+                            for (var i = 1; i <= 3; i++) {
+                                var imgElement = document.getElementById("dynamicImg-" + i);
+                                if (imgElement) {
+                                    updateImageSrc(imgElement);
+                                }
+                            }
                         }
 
                         // Initial display
                         displayCards();
 
                         // Function to fetch image data from API
-                        async function updateImageSrc(imgSrc) {
-                            const res = await fetch('https://217.196.51.115/m/api/images?filePath=post-pics/' + encodeURIComponent(imgSrc))
+                        async function updateImageSrc(imgElement) {
+                            const res = await fetch('http://217.196.51.115/m/api/images?filePath=post-pics/' + encodeURIComponent(imgElement.src))
                                 .then(response => response.blob())
                                 .then(data => {
-                                    // Create a blob from the response data
                                     var blob = new Blob([data], {
                                         type: 'image/png'
-                                    }); // Adjust type if needed
-
-                                    // Return the blob URL
-                                    return URL.createObjectURL(blob);
+                                    });
+                                    imgElement.src = URL.createObjectURL(blob);
                                 })
-                                .catch(error => {
-                                    console.error('Error fetching image data:', error);
-                                    return ''; // Return an empty string in case of an error
-                                });
+                                .catch(error => console.error('Error fetching image data:', error));
+                        }
 
-                            return res;
+                        // Loop through images with IDs containing "dynamicImg"
+                        for (var i = 1; i <= 3; i++) {
+                            var imgElement = document.getElementById("dynamicImg-" + i);
+                            if (imgElement) {
+                                // Update each image's src from the API
+                                updateImageSrc(imgElement);
+                            }
                         }
                     </script>
                 </div>
@@ -186,10 +216,12 @@ if (!$posts || !$events || !$blogs) {
                             return strtotime($b['event_datecreated']) - strtotime($a['event_datecreated']);
                         });
 
+                        $i = 0;
                         foreach ($events as $event) :
+                            $i++;
                         ?>
                             <div class="card-container bg-white rounded-lg overflow-hidden shadow-lg h-full">
-                                <img src="<?php echo esc_url($event['event_img']); ?>" alt="<?php echo esc_html($event['event_img']); ?>" class="w-full h-40 object-cover" style="background-color: #888888;">
+                                <img src=<?php echo esc_html(($event['event_img'])); ?> alt=<?php echo esc_html(($event['event_img'])); ?> id="dynamicImg-<?php echo $i ?>" class="w-full h-40 object-cover" style="background-color: #888888;">
                                 <div class="p-4">
                                     <div class="flex items-center mb-2">
                                         <div>
@@ -203,11 +235,11 @@ if (!$posts || !$events || !$blogs) {
                     </div>
 
                     <div class="mt-4 flex justify-end">
-                        <button id="prevBtn" onclick="prevEventPage()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        <button id="prevEventBtn" onclick="prevEventPage()" class="prev-button bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                             <i class="fas fa-arrow-left"></i> Previous
                         </button>
                         <div class="mx-1"></div>
-                        <button id="nextBtn" onclick="nextEventPage()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        <button id="nextEventBtn" onclick="nextEventPage()" class="next-button bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                             Next <i class="fas fa-arrow-right"></i>
                         </button>
                     </div>
@@ -227,42 +259,60 @@ if (!$posts || !$events || !$blogs) {
                             for (let i = startIndex; i < endIndex && i < eventCards.length; i++) {
                                 const card = document.createElement('div');
                                 card.className = 'card-container bg-white rounded-lg overflow-hidden shadow-lg h-full';
+
+                                // const truncatedTitle = eventCards[i].event_title.length > 20 ?
+                                //     eventCards[i].event_title.slice(0, 20) + '...' :
+                                //     eventCards[i].event_title;
+
                                 card.innerHTML = `
-                    <img src="${eventCards[i].event_img}" alt="${eventCards[i].event_img}" class="w-full h-40 object-cover" style="background-color: #888888;">
-                    <div class="p-4">
-                        <div class="flex items-center mb-2">
-                            <div>
-                                <h2 class="text-2xl font-semibold">${eventCards[i].event_title}</h2>
-                                <p class="text-gray-600 text-sm">${eventCards[i].event_datecreated}</p>
-                            </div>
-                        </div>
-                    </div>`;
+            <img src="${eventCards[i].event_img}" alt="${eventCards[i].event_img}" id="dynamicEventImg-${i}" class="w-full h-40 object-cover" style="background-color: #888888;">
+            <div class="p-4">
+                <div class="flex items-center mb-2">
+                    <div>
+                        <h2 class="text-2xl font-semibold">${eventCards[i].event_title}</h2>
+                        <p class="text-gray-600 text-sm">${eventCards[i].event_datecreated}</p>
+                    </div>
+                </div>
+            </div>`;
                                 eventCardContainer.appendChild(card);
                             }
 
-                            // Show/hide next and previous buttons based on the number of events
-                            const prevBtn = document.getElementById('prevBtn');
-                            const nextBtn = document.getElementById('nextBtn');
+                            const prevEventBtn = document.getElementById('prevEventBtn');
+                            const nextEventBtn = document.getElementById('nextEventBtn');
 
                             if (eventCards.length <= eventCardsPerPage) {
-                                // Hide buttons if the number of events is 3 or below
-                                prevBtn.style.display = 'none';
-                                nextBtn.style.display = 'none';
+                                prevEventBtn.style.display = 'none';
+                                nextEventBtn.style.display = 'none';
                             } else {
-                                // Show buttons if the number of events is 4 or above
-                                prevBtn.style.display = 'inline-block';
-                                nextBtn.style.display = 'inline-block';
+                                prevEventBtn.style.display = 'inline-block';
+                                nextEventBtn.style.display = 'inline-block';
                             }
                         }
 
                         function nextEventPage() {
                             currentEventPage = Math.min(currentEventPage + 1, Math.ceil(eventCards.length / eventCardsPerPage) - 1);
                             displayEventCards();
+
+                            // Call updateEventImageSrc for each image after updating the current page
+                            for (var i = 1; i <= 3; i++) {
+                                var imgElement = document.getElementById("dynamicEventImg-" + i);
+                                if (imgElement) {
+                                    updateEventImageSrc(imgElement); // Fix: Use updateEventImageSrc instead of updateImageSrc
+                                }
+                            }
                         }
 
                         function prevEventPage() {
                             currentEventPage = Math.max(currentEventPage - 1, 0);
                             displayEventCards();
+
+                            // Call updateEventImageSrc for each image after updating the current page
+                            for (var i = 1; i <= 3; i++) {
+                                var imgElement = document.getElementById("dynamicEventImg-" + i);
+                                if (imgElement) {
+                                    updateEventImageSrc(imgElement); // Fix: Use updateEventImageSrc instead of updateImageSrc
+                                }
+                            }
                         }
 
                         // Initial display
@@ -270,25 +320,26 @@ if (!$posts || !$events || !$blogs) {
 
                         // Function to fetch image data from API
                         async function updateImageSrc(imgSrc) {
-                            const res = await fetch('https://217.196.51.115/m/api/images?filePath=event-pics/' + encodeURIComponent(imgSrc))
+                            const res = await fetch('http://217.196.51.115/m/api/images?filePath=event-pics/' + encodeURIComponent(imgSrc))
                                 .then(response => response.blob())
                                 .then(data => {
-                                    // Create a blob from the response data
                                     var blob = new Blob([data], {
                                         type: 'image/png'
-                                    }); // Adjust type if needed
-
-                                    // Return the blob URL
-                                    return URL.createObjectURL(blob);
+                                    });
+                                    imgElement.src = URL.createObjectURL(blob);
                                 })
-                                .catch(error => {
-                                    console.error('Error fetching image data:', error);
-                                    return ''; // Return an empty string in case of an error
-                                });
+                                .catch(error => console.error('Error fetching image data:', error));
+                        }
 
-                            return res;
+                        // Loop through images with IDs containing "dynamicEventImg"
+                        for (var i = 1; i <= 3; i++) {
+                            var imgElement = document.getElementById("dynamicEventImg-" + i);
+                            if (imgElement) {
+                                updateEventImageSrc(imgElement);
+                            }
                         }
                     </script>
+
                 </div>
 
                 <!-- Display Blogs -->
@@ -302,9 +353,12 @@ if (!$posts || !$events || !$blogs) {
                             return strtotime($b['blog_dateadded']) - strtotime($a['blog_dateadded']);
                         });
 
-                        foreach ($blogs as $blog) : ?>
+                        $i = 0;
+                        foreach ($blogs as $blog) :
+                            $i++;
+                        ?>
                             <div class="card-container bg-white rounded-lg overflow-hidden shadow-lg h-full">
-                                <img src="<?php echo esc_url($blog['blog_img']); ?>" alt="<?php echo esc_html($blog['blog_img']); ?>" class="w-full h-40 object-cover" style="background-color: #888888;">
+                                <img src=<?php echo esc_html(($blog['blog_img'])); ?> alt=<?php echo esc_html(($blog['blog_img'])); ?> id="dynamicImg-<?php echo $i ?>" class="w-full h-40 object-cover" style="background-color: #888888;">
                                 <div class="p-4">
                                     <div class="flex items-center mb-2">
                                         <div>
@@ -318,15 +372,14 @@ if (!$posts || !$events || !$blogs) {
                     </div>
 
                     <div class="mt-4 flex justify-end" id="blogNavButtons">
-                        <button id="prevButton" onclick="prevBlogPage()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        <button onclick="prevBlogPage()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                             <i class="fas fa-arrow-left"></i> Previous
                         </button>
                         <div class="mx-1"></div>
-                        <button id="nextButton" onclick="nextBlogPage()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        <button onclick="nextBlogPage()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                             Next <i class="fas fa-arrow-right"></i>
                         </button>
                     </div>
-
 
                     <script>
                         const blogCardsPerPage = 3;
@@ -343,16 +396,22 @@ if (!$posts || !$events || !$blogs) {
                             for (let i = startBlogIndex; i < endBlogIndex && i < blogCards.length; i++) {
                                 const blogCard = document.createElement('div');
                                 blogCard.className = 'card-container bg-white rounded-lg overflow-hidden shadow-lg h-full';
+
+                                // Limiting the display of blog_title to 15 characters and adding '...'
+                                // const truncatedTitle = blogCards[i].blog_title.length > 15 ?
+                                //     blogCards[i].blog_title.slice(0, 15) + '...' :
+                                //     blogCards[i].blog_title;
+
                                 blogCard.innerHTML = `
-                    <img src="${blogCards[i].blog_img}" alt="${blogCards[i].blog_img}" class="w-full h-40 object-cover" style="background-color: #888888;">
-                    <div class="p-4">
-                        <div class="flex items-center mb-2">
-                            <div>
-                                <h2 class="text-2xl font-semibold">${blogCards[i].blog_title}</h2>
-                                <p class="text-gray-600 text-sm">${blogCards[i].blog_dateadded}</p>
-                            </div>
+                <img src="${blogCards[i].blog_img}" alt="${blogCards[i].blog_img}" id="dynamicBlogImg-${i}" class="w-full h-40 object-cover" style="background-color: #888888;">
+                <div class="p-4">
+                    <div class="flex items-center mb-2">
+                        <div>
+                            <h2 class="text-2xl font-semibold">${blogCards[i].blog_title}</h2>
+                            <p class="text-gray-600 text-sm">${blogCards[i].blog_dateadded}</p>
                         </div>
-                    </div>`;
+                    </div>
+                </div>`;
                                 blogCardContainer.appendChild(blogCard);
                             }
 
@@ -378,42 +437,50 @@ if (!$posts || !$events || !$blogs) {
                         function nextBlogPage() {
                             currentBlogPage = Math.min(currentBlogPage + 1, Math.ceil(blogCards.length / blogCardsPerPage) - 1);
                             displayBlogCards();
+
+                            // Call updateBlogImageSrc for each image after updating the current page
+                            for (var i = 1; i <= 3; i++) {
+                                var imgElement = document.getElementById("dynamicBlogImg-" + i);
+                                if (imgElement) {
+                                    updateBlogImageSrc(imgElement); // Fixed the function name here
+                                }
+                            }
                         }
 
                         function prevBlogPage() {
                             currentBlogPage = Math.max(currentBlogPage - 1, 0);
                             displayBlogCards();
+
+                            // Call updateBlogImageSrc for each image after updating the current page
+                            for (var i = 1; i <= 3; i++) {
+                                var imgElement = document.getElementById("dynamicBlogImg-" + i);
+                                if (imgElement) {
+                                    updateBlogImageSrc(imgElement); // Fixed the function name here
+                                }
+                            }
                         }
 
                         // Initial display
                         displayBlogCards();
 
                         // Function to fetch image data from API
-                        async function updateImageSrc(imgSrc) {
-                            const res = await fetch('https://217.196.51.115/m/api/images?filePath=blog-pics/' + encodeURIComponent(imgSrc))
-                                .then(response => response.blob())
-                                .then(data => {
-                                    // Create a blob from the response data
-                                    var blob = new Blob([data], {
-                                        type: 'image/png'
-                                    }); // Adjust type if needed
+                        async function updateBlogImageSrc(imgSrc) {
+                                imgSrc.src = `http://217.196.51.115/m/api/images?filePath=blog-pics/${imgSrc.alt}`
+                                console.log(imgSrc)
+                                
+                        }
 
-                                    // Return the blob URL
-                                    return URL.createObjectURL(blob);
-                                })
-                                .catch(error => {
-                                    console.error('Error fetching image data:', error);
-                                    return ''; // Return an empty string in case of an error
-                                });
-
-                            return res;
+                        // Loop through images with IDs containing "dynamicBlogImg"
+                        for (var i = 0; i <= 10; i++) {
+                            var imgElement = document.getElementById("dynamicBlogImg-" + i);
+                            updateBlogImageSrc(imgElement);
+                            console.log(`dynamicBlogImg-${i}: `,imgElement)
                         }
                     </script>
                 </div>
 
             </div>
         </main>
-
     </body>
 
     </html>
